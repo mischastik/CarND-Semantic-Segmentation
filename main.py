@@ -82,10 +82,14 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     :param num_classes: Number of classes to classify
     :return: Tuple of (logits, train_op, cross_entropy_loss)
     """
-    cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(nn_last_layer, correct_label))
-    optimizer = tf.train.AdamOptimizer(learning_rate).minimize(cross_entropy_loss)
+    cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=nn_last_layer,
+                                                                                logits=correct_label))
+    loss = tf.reduce_mean(cross_entropy_loss)
+    reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+    total_loss = loss + sum(reg_losses)
+    train_op = tf.train.AdamOptimizer(learning_rate).minimize(total_loss)
 
-    return nn_last_layer, optimizer, cross_entropy_loss
+    return nn_last_layer, train_op, total_loss
 tests.test_optimize(optimize)
 
 
@@ -104,13 +108,14 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     :param keep_prob: TF Placeholder for dropout keep probability
     :param learning_rate: TF Placeholder for learning rate
     """
-    # TODO: Implement function
-    pass
     for epoch in range(epochs):
+        batch_nr = 0
         for [image, label] in get_batches_fn(batch_size):
-            feed_dict = {input_image: image, correct_label: label, keep_prob: 0.5, learning_rate: 0.9}
-            _, loss = sess.run([train_op, cross_entropy_loss], feed_dict)
-            print(loss)
+            feed_dict = {input_image: image, correct_label: label, keep_prob: 0.75, learning_rate: 0.001}
+            _, loss = sess.run([train_op, cross_entropy_loss], feed_dict=feed_dict)
+            batch_nr += 1
+            if batch_nr % 10 == 0:
+                print("epoch {}, batch {}: loss {}".format(epoch, batch_nr, loss))
 tests.test_train_nn(train_nn)
 
 
@@ -127,7 +132,11 @@ def run():
     # OPTIONAL: Train and Inference on the cityscapes dataset instead of the Kitti dataset.
     # You'll need a GPU with at least 10 teraFLOPS to train on.
     #  https://www.cityscapes-dataset.com/
+    epochs = 16
+    batch_size = 8
 
+    learning_rate = tf.placeholder(tf.float32, shape=())
+    correct_label = tf.placeholder(tf.float32, shape=(None, image_shape[0], image_shape[1], num_classes))
     with tf.Session() as sess:
         # Path to vgg model
         vgg_path = os.path.join(data_dir, 'vgg')
@@ -138,11 +147,15 @@ def run():
         #  https://datascience.stackexchange.com/questions/5224/how-to-prepare-augment-images-for-neural-network
 
         # TODO: Build NN using load_vgg, layers, and optimize function
-
+        input_image, keep_prob, layer3_out, layer4_out, layer7_out = load_vgg(sess, vgg_path)
+        layer_output = layers(layer3_out, layer4_out, layer7_out, num_classes)
         # TODO: Train NN using the train_nn function
+        logits, optimizer, loss = optimize(layer_output, correct_label, learning_rate, num_classes)
 
+        train_nn(sess, epochs, batch_size, get_batches_fn, optimizer, loss, input_image,
+                 correct_label, keep_prob, learning_rate)
         # TODO: Save inference data using helper.save_inference_samples
-        #  helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
+        helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
 
         # OPTIONAL: Apply the trained model to a video
 
