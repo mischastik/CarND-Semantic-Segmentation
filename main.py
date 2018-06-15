@@ -145,8 +145,8 @@ def run():
     # OPTIONAL: Train and Inference on the cityscapes dataset instead of the Kitti dataset.
     # You'll need a GPU with at least 10 teraFLOPS to train on.
     #  https://www.cityscapes-dataset.com/
-    epochs = 16
-    batch_size = 8
+    epochs = 40
+    batch_size = 10
     learning_rate = tf.placeholder(tf.float32, shape=())
     correct_label = tf.placeholder(tf.float32, shape=(None, image_shape[0], image_shape[1], num_classes))
     with tf.Session() as sess:
