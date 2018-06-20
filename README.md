@@ -2,7 +2,7 @@
 ### Introduction
 In this project, you'll label the pixels of a road in images using a Fully Convolutional Network (FCN).
 #### Results
-The sub-folder "imgs" contains a random sample of result images produced with commit a791527e34ea1bb0f55ef07244ebfd883ed53051.
+The sub-folder "imgs" contains a random sample of result images produced with commit 7b9f980723df830939c1147e1d5fbe992db2054b.
 
 ### Setup
 ##### GPU
